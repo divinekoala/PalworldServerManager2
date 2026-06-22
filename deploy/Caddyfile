@@ -1,0 +1,35 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Caddy reverse proxy for the Palworld Server Manager web UI (HTTPS via DuckDNS)
+#
+# Replace YOURDOMAIN with your DuckDNS subdomain and 8080 with your WEB_PORT.
+# Use ONE of the two server blocks below.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Option A (RECOMMENDED): DNS-01 challenge ─────────────────────────────────
+# Works behind NAT and does NOT require forwarding port 80 — only port 443.
+# Requires a Caddy build that includes the DuckDNS DNS module:
+#   xcaddy build --with github.com/caddy-dns/duckdns
+# or download "Caddy with plugins" and tick the `duckdns` provider at:
+#   https://caddyserver.com/download
+# Set the DUCKDNS_TOKEN environment variable for the Caddy process before running.
+#
+YOURDOMAIN.duckdns.org {
+	tls {
+		dns duckdns {env.DUCKDNS_TOKEN}
+	}
+	encode gzip
+	reverse_proxy 127.0.0.1:8080
+}
+
+# ── Option B: HTTP-01 challenge (stock Caddy binary) ─────────────────────────
+# No custom build needed, but you MUST forward BOTH port 80 and port 443 on your
+# router to this machine. Delete Option A above and uncomment this block to use it.
+#
+# YOURDOMAIN.duckdns.org {
+# 	encode gzip
+# 	reverse_proxy 127.0.0.1:8080
+# }
+
+# Notes:
+# - Caddy flushes Server-Sent Events correctly by default (no buffering config needed).
+# - Never expose the Palworld REST API port (8212) or the game ports through Caddy.

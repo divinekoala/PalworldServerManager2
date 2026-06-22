@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Palworld Server Manager</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="card">
+      <h1>Palworld Server</h1>
+
+      <div class="status">
+        <span id="dot" class="dot off" aria-hidden="true"></span>
+        <span id="status-text" class="status-text">Connecting…</span>
+        <span id="spinner" class="spinner hidden" aria-hidden="true"></span>
+      </div>
+
+      <p id="players" class="players hidden">Players online: <span id="player-count">0</span></p>
+      <p id="detail" class="detail"></p>
+
+      <!-- Controls (shown when logged in) -->
+      <div id="controls" class="controls hidden">
+        <button id="btn-on" class="btn btn-on">Turn On</button>
+        <button id="btn-off" class="btn btn-off">Turn Off</button>
+        <button id="btn-logout" class="btn btn-link">Log out</button>
+      </div>
+
+      <!-- Login (shown when logged out) -->
+      <form id="login" class="login hidden" autocomplete="off">
+        <label for="password">Enter password to control the server</label>
+        <div class="login-row">
+          <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
+          <button id="btn-login" type="submit" class="btn">Log in</button>
+        </div>
+      </form>
+
+      <p id="message" class="message" role="status" aria-live="polite"></p>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

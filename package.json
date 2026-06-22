@@ -1,0 +1,19 @@
+{
+  "name": "palworld-server-manager",
+  "version": "1.0.0",
+  "description": "Manager for a Palworld dedicated server: auto save+shutdown when empty, and a password-protected web UI to start/stop the server (HTTPS via DuckDNS + Caddy).",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "hash-password": "node scripts/hash-password.js"
+  },
+  "dependencies": {
+    "cookie": "^0.6.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  },
+  "license": "MIT"
+}
