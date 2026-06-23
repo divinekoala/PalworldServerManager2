@@ -31,6 +31,20 @@ For the full walkthrough — enabling the Palworld REST API, port forwarding,
 DuckDNS, Caddy HTTPS, and running everything on boot — see
 [`docs/SETUP.md`](docs/SETUP.md).
 
+### Or run it all in Docker
+
+Prefer containers? A full stack (SteamCMD + Palworld server + manager + Caddy)
+is provided:
+
+```bash
+cp .env.docker.example .env   # then edit it
+docker compose up -d --build
+```
+
+See [`docs/DOCKER.md`](docs/DOCKER.md) for the details. This bundles the Linux
+game server and the manager in one image, so the manager can start/stop the
+server without a Docker socket.
+
 ## How it works
 
 | Piece | File |

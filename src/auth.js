@@ -4,21 +4,24 @@ const SCRYPT_KEYLEN = 64;
 
 /**
  * Hash a plaintext password with scrypt. Returns a self-describing string:
- *   scrypt$<saltHex>$<hashHex>
+ *   scrypt:<saltHex>:<hashHex>
+ *
+ * The ":" separator (not "$") is deliberate: a "$" in a value gets interpreted
+ * by docker-compose env interpolation and would corrupt the hash in a container.
  */
 export function hashPassword(password) {
   const salt = crypto.randomBytes(16);
   const hash = crypto.scryptSync(password, salt, SCRYPT_KEYLEN);
-  return `scrypt$${salt.toString('hex')}$${hash.toString('hex')}`;
+  return `scrypt:${salt.toString('hex')}:${hash.toString('hex')}`;
 }
 
 /**
- * Verify a plaintext password against a stored "scrypt$salt$hash" string.
+ * Verify a plaintext password against a stored "scrypt:salt:hash" string.
  * Constant-time comparison; never throws on malformed input (returns false).
  */
 export function verifyPassword(password, stored) {
   try {
-    const [scheme, saltHex, hashHex] = String(stored).split('$');
+    const [scheme, saltHex, hashHex] = String(stored).split(':');
     if (scheme !== 'scrypt' || !saltHex || !hashHex) return false;
     const salt = Buffer.from(saltHex, 'hex');
     const expected = Buffer.from(hashHex, 'hex');

@@ -1,0 +1,9 @@
+# Caddy config for the Docker stack. Reaches the manager over the compose
+# network at palworld-manager:8080. Domain + token come from the environment.
+{$DUCKDNS_DOMAIN}.duckdns.org {
+	tls {
+		dns duckdns {env.DUCKDNS_TOKEN}
+	}
+	encode gzip
+	reverse_proxy palworld-manager:8080
+}

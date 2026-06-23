@@ -1,0 +1,60 @@
+# Palworld Server Manager — full stack.
+#   palworld-manager : SteamCMD + Palworld server + the Node manager (web UI)
+#   caddy            : HTTPS reverse proxy (DuckDNS DNS-01)
+#
+# Copy .env.docker.example to .env and fill it in before `docker compose up -d --build`.
+services:
+  palworld-manager:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: palworld-server-manager
+    container_name: palworld-manager
+    restart: unless-stopped
+    init: true # tini reaps the game process and forwards signals
+    # Give the manager time to save + gracefully shut the game down on `docker stop`.
+    # Keep this >= STOP_TIMEOUT_SECONDS + SHUTDOWN_GRACE_SECONDS.
+    stop_grace_period: 3m
+    env_file: .env
+    environment:
+      # Container-specific overrides (win over anything in .env).
+      PAL_SERVER_EXE: /palworld/PalServer.sh
+      PAL_SERVER_CWD: /palworld
+      WEB_HOST: 0.0.0.0
+      REST_API_BASE: http://127.0.0.1:8212
+      SECURE_COOKIES: "true"
+    ports:
+      - "8211:8211/udp" # game traffic — players connect here
+      # - "27015:27015/udp" # optional Steam query port
+    volumes:
+      - palworld-data:/palworld
+    networks: [web]
+
+  caddy:
+    build:
+      context: .
+      dockerfile: docker/caddy/Dockerfile
+    image: caddy-duckdns
+    container_name: palworld-caddy
+    restart: unless-stopped
+    environment:
+      DUCKDNS_DOMAIN: ${DUCKDNS_DOMAIN}
+      DUCKDNS_TOKEN: ${DUCKDNS_TOKEN}
+    ports:
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+      - "80:80" # only needed if you switch to the HTTP-01 challenge
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [palworld-manager]
+    networks: [web]
+
+volumes:
+  palworld-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  web:

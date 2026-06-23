@@ -97,6 +97,9 @@ export class ServerManager extends EventEmitter {
         cwd,
         windowsHide: false,
         stdio: 'ignore',
+        // On Linux, PalServer.sh execs a child binary; a new process group lets
+        // us force-kill the whole tree via the negative pid.
+        detached: process.platform !== 'win32',
       });
       this.pid = this.child.pid;
       this.child.on('error', (err) => {
@@ -258,12 +261,21 @@ export class ServerManager extends EventEmitter {
       }
       // Image-name fallback covers adopted processes we don't own a handle for.
       spawnSync('taskkill', ['/IM', 'PalServer-Win64-Shipping.exe', '/F']);
-    } else if (this.pid) {
-      try {
-        process.kill(this.pid, 'SIGKILL');
-      } catch {
-        /* already gone */
+    } else {
+      if (this.pid) {
+        try {
+          // Negative pid kills the whole process group (PalServer.sh + binary).
+          process.kill(-this.pid, 'SIGKILL');
+        } catch {
+          try {
+            process.kill(this.pid, 'SIGKILL');
+          } catch {
+            /* already gone */
+          }
+        }
       }
+      // Image-name fallback covers an orphaned worker we no longer have a pid for.
+      spawnSync('pkill', ['-9', '-f', 'PalServer-Linux-Shipping']);
     }
     this._childExited = true;
     this.child = null;
