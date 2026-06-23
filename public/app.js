@@ -15,7 +15,11 @@ const loginForm = el('login');
 const passwordInput = el('password');
 const message = el('message');
 
-let authed = false;
+// null (not false) so the first /api/status response always differs from this
+// initial value and triggers applyAuth() — otherwise a logged-out visitor
+// (authed:false) matches the initial false, applyAuth never runs, and neither
+// the login form nor the controls are ever revealed.
+let authed = null;
 let currentState = null;
 
 const LABELS = {
