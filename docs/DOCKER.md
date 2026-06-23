@@ -73,6 +73,12 @@ docker network connect palworld-net <your-caddy-container-name>
 docker exec <your-caddy-container-name> caddy reload --config /etc/caddy/Caddyfile
 ```
 
+> The `docker network connect` above is one-off and is lost if you recreate your
+> Caddy. To make it permanent, add the `palworld-net` external network to your
+> Caddy's own `docker-compose.yml` instead — see
+> [`docker/external-caddy.compose.yml`](../docker/external-caddy.compose.yml).
+> (Bring the manager stack up first so the network exists.)
+
 Your Caddy already has the DuckDNS module + `DUCKDNS_TOKEN` (you use it for your
 other domain), and the same DuckDNS token covers this new subdomain. No ports
 conflict because only your existing Caddy binds 443.

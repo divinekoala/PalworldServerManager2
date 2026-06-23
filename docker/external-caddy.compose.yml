@@ -1,0 +1,31 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Snippet for YOUR existing Caddy's docker-compose.yml.
+#
+# Attaches your Caddy to the manager's "palworld-net" network permanently, so the
+# link survives `docker compose up`/recreate — no manual `docker network connect`.
+#
+# Order matters: bring the manager stack up FIRST so the network exists, because
+# it is referenced here as `external` (this file joins it, never creates it):
+#     docker compose up -d        # in the PalworldServerManager2 folder
+#
+# Then merge the marked parts below into your existing Caddy compose file and
+# recreate your Caddy:  docker compose up -d
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  caddy: # <-- your existing Caddy service (keep all its current config)
+    # image: ...        (unchanged)
+    # ports: ["80:80", "443:443", "443:443/udp"]   (unchanged)
+    # volumes: ...      (unchanged)
+    networks:
+      # ⚠ Once you list ANY network, Compose stops adding the implicit "default"
+      #    network. List your CURRENT network(s) here too, or your Caddy loses
+      #    connectivity to its other services. (If you never set `networks:`
+      #    before, your services were on "default" — so keep it below.)
+      - default
+      - palworld-net # <-- add this so `reverse_proxy palworld-manager:8080` resolves
+
+networks:
+  # Keep your existing networks, and add this one:
+  palworld-net:
+    external: true # created by the manager stack; this file only joins it
