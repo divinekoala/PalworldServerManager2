@@ -1,0 +1,6 @@
+# Shell scripts MUST use LF — they run inside Linux containers. Checking them
+# out with CRLF on Windows makes the shebang resolve to `bash\r` and the
+# entrypoint crash-loops with exit 127 ("env: 'bash\r': No such file").
+*.sh text eol=lf
+docker/entrypoint.sh text eol=lf
+docker/configure-settings.sh text eol=lf
