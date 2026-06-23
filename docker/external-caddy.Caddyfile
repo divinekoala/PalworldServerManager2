@@ -1,0 +1,22 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Snippet for your EXISTING Caddy (the one already on ports 80/443).
+#
+# Prereqs:
+#   1. Start the manager:        docker compose up -d --build
+#   2. Attach your Caddy to the manager's network so it can resolve the
+#      container by name:
+#        docker network connect palworld-net <your-caddy-container-name>
+#   3. Your Caddy needs the DuckDNS DNS module and DUCKDNS_TOKEN in its
+#      environment (you already have this for your other domain).
+#   4. Add the block below to your Caddyfile and reload Caddy
+#        (docker exec <your-caddy> caddy reload --config /etc/caddy/Caddyfile),
+#      replacing the domain with your Palworld DuckDNS subdomain.
+# ─────────────────────────────────────────────────────────────────────────────
+
+palworld.duckdns.org {
+	tls {
+		dns duckdns {env.DUCKDNS_TOKEN}
+	}
+	encode gzip
+	reverse_proxy palworld-manager:8080
+}

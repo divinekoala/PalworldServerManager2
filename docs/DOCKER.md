@@ -45,32 +45,65 @@ Then set your domain in `docker/caddy/Caddyfile` is **not** needed — it reads
 docker compose up -d --build
 ```
 
-First boot downloads the Palworld server via SteamCMD into the `palworld-data`
-volume (a few GB) — give it a few minutes. Watch progress with:
+This starts **only the manager** — it does **not** publish ports 80/443, so it
+coexists with any existing reverse proxy. First boot downloads the Palworld
+server via SteamCMD into the `palworld-data` volume (a few GB) — give it a few
+minutes. Watch progress with:
 
 ```powershell
 docker compose logs -f palworld-manager
 ```
 
-## 3. Use it
+The manager listens on the `palworld-net` Docker network as `palworld-manager:8080`
+(not published to the host). Next, put a reverse proxy in front of it.
 
-- Locally: the manager listens on the internal network; reach it through Caddy at
-  `https://<DUCKDNS_DOMAIN>.duckdns.org` once DNS + the cert are ready.
-- Log in with your web UI password and use Turn On / Turn Off. The server only
-  actually launches when you turn it on; it auto-saves and shuts down after the
-  configured idle period.
+## 3. HTTPS — pick one
+
+### Option A: use your existing Caddy (recommended if 80/443 are already taken)
+
+Your own Caddy keeps owning 80/443 and just gains the Palworld domain. See
+[`docker/external-caddy.Caddyfile`](../docker/external-caddy.Caddyfile) for the
+copy-paste block. In short:
+
+```powershell
+# 1) let your Caddy reach the manager by name
+docker network connect palworld-net <your-caddy-container-name>
+# 2) add the site block to your Caddyfile (reverse_proxy palworld-manager:8080),
+#    then reload your Caddy
+docker exec <your-caddy-container-name> caddy reload --config /etc/caddy/Caddyfile
+```
+
+Your Caddy already has the DuckDNS module + `DUCKDNS_TOKEN` (you use it for your
+other domain), and the same DuckDNS token covers this new subdomain. No ports
+conflict because only your existing Caddy binds 443.
+
+### Option B: the bundled Caddy (only if nothing else uses 80/443)
+
+```powershell
+docker compose --profile bundled-caddy up -d --build
+```
+
+Set your subdomain via `DUCKDNS_DOMAIN` in `.env`; the bundled Caddy publishes
+443 and proxies to the manager automatically.
+
+## 4. Use it
+
+Reach the UI at `https://<your-subdomain>.duckdns.org` once DNS + the cert are
+ready. Log in with your web UI password and use Turn On / Turn Off — the server
+only launches when you turn it on, and auto-saves + shuts down after the idle
+period.
 
 ## Ports
 
 | Port | Published | Purpose |
 | --- | --- | --- |
-| 443 (TCP/UDP) | yes (Caddy) | HTTPS / HTTP-3 to the web UI |
-| 80 (TCP) | yes (Caddy) | only used if you switch to the HTTP-01 challenge |
 | 8211 (UDP) | yes (manager) | Palworld game traffic — players connect here |
-| 8080 | no | web UI, internal; Caddy proxies it |
+| 443 (TCP/UDP) | only with `--profile bundled-caddy` | HTTPS to the web UI |
+| 8080 | no | web UI on `palworld-net`; your proxy reaches it by name |
 | 8212 | no | REST API, internal to the manager container only |
 
-Forward **443** (and **8211/UDP** for players) on your router. Never expose 8212.
+Forward **8211/UDP** (for players) and **443** (on whichever proxy owns it) on
+your router. Never expose 8212.
 
 ## Data, updates, and lifecycle
 

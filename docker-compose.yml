@@ -1,8 +1,11 @@
-# Palworld Server Manager — full stack.
-#   palworld-manager : SteamCMD + Palworld server + the Node manager (web UI)
-#   caddy            : HTTPS reverse proxy (DuckDNS DNS-01)
+# Palworld Server Manager.
 #
-# Copy .env.docker.example to .env and fill it in before `docker compose up -d --build`.
+# Default `docker compose up -d --build` starts ONLY the manager (no ports 80/443),
+# so it coexists with an existing reverse proxy. Point your proxy at the manager —
+# see docs/DOCKER.md.
+#
+# If you have NOTHING else on 80/443 and want a bundled HTTPS proxy, add the
+# profile:  docker compose --profile bundled-caddy up -d --build
 services:
   palworld-manager:
     build:
@@ -20,7 +23,7 @@ services:
       # Container-specific overrides (win over anything in .env).
       PAL_SERVER_EXE: /palworld/PalServer.sh
       PAL_SERVER_CWD: /palworld
-      WEB_HOST: 0.0.0.0
+      WEB_HOST: 0.0.0.0 # reachable on the docker network only (not published)
       REST_API_BASE: http://127.0.0.1:8212
       SECURE_COOKIES: "true"
     ports:
@@ -30,6 +33,8 @@ services:
       - palworld-data:/palworld
     networks: [web]
 
+  # Optional bundled HTTPS proxy — only for hosts with NOTHING else on 80/443.
+  # Starts only with:  docker compose --profile bundled-caddy up -d
   caddy:
     build:
       context: .
@@ -37,13 +42,13 @@ services:
     image: caddy-duckdns
     container_name: palworld-caddy
     restart: unless-stopped
+    profiles: ["bundled-caddy"]
     environment:
       DUCKDNS_DOMAIN: ${DUCKDNS_DOMAIN}
       DUCKDNS_TOKEN: ${DUCKDNS_TOKEN}
     ports:
       - "443:443"
       - "443:443/udp" # HTTP/3
-      - "80:80" # only needed if you switch to the HTTP-01 challenge
     volumes:
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
@@ -57,4 +62,7 @@ volumes:
   caddy-config:
 
 networks:
+  # Predictable name so an existing proxy can join it:
+  #   docker network connect palworld-net <your-caddy-container>
   web:
+    name: palworld-net

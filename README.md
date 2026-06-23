@@ -41,9 +41,11 @@ cp .env.docker.example .env   # then edit it
 docker compose up -d --build
 ```
 
-See [`docs/DOCKER.md`](docs/DOCKER.md) for the details. This bundles the Linux
-game server and the manager in one image, so the manager can start/stop the
-server without a Docker socket.
+This bundles the Linux game server and the manager in one image (so the manager
+can start/stop the server without a Docker socket) and starts **manager-only** —
+no ports 80/443 — so it coexists with an existing reverse proxy. Point your proxy
+at `palworld-manager:8080`, or run the bundled Caddy with
+`docker compose --profile bundled-caddy up -d`. See [`docs/DOCKER.md`](docs/DOCKER.md).
 
 ## How it works
 
