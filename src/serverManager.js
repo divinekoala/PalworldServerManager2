@@ -85,6 +85,21 @@ export class ServerManager extends EventEmitter {
     return { accepted: true, state: this.state };
   }
 
+  restart(reason = 'manual-restart') {
+    if (this.state !== STATES.ON) {
+      return { accepted: false, state: this.state, message: `Cannot restart while ${this.state}` };
+    }
+    this._setState(STATES.STOPPING, reason);
+    this._doStop(reason)
+      .then(() => {
+        // _doStop always lands in OFF via its finally; the guard protects
+        // against anything else having intervened meanwhile.
+        if (this.state === STATES.OFF) this.start();
+      })
+      .catch((err) => log('Unexpected restart error:', err));
+    return { accepted: true, state: this.state };
+  }
+
   // ── Start/stop implementations ─────────────────────────────────────────────
 
   async _doStart() {
@@ -220,7 +235,11 @@ export class ServerManager extends EventEmitter {
       if (changed) this._emitChange('players');
 
       const thresholdMs = this.cfg.autoShutdown.emptyMinutes * 60 * 1000;
-      if (this.emptySince && Date.now() - this.emptySince >= thresholdMs) {
+      if (
+        this.cfg.autoShutdown.enabled &&
+        this.emptySince &&
+        Date.now() - this.emptySince >= thresholdMs
+      ) {
         log(`Auto-shutdown: server empty for ${this.cfg.autoShutdown.emptyMinutes} min.`);
         this.stop('auto-idle');
       }

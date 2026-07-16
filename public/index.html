@@ -8,37 +8,113 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main class="card">
-      <h1>Palworld Server</h1>
+    <div class="app">
+      <nav class="tabs" role="tablist">
+        <button class="tab active" data-tab="server" role="tab" aria-selected="true">Server</button>
+        <button class="tab" data-tab="settings" role="tab" aria-selected="false">Settings</button>
+      </nav>
 
-      <div class="status">
-        <span id="dot" class="dot off" aria-hidden="true"></span>
-        <span id="status-text" class="status-text">Connecting…</span>
-        <span id="spinner" class="spinner hidden" aria-hidden="true"></span>
-      </div>
+      <main id="panel-server" class="card">
+        <h1>Palworld Server</h1>
 
-      <p id="players" class="players hidden">Players online: <span id="player-count">0</span></p>
-      <p id="detail" class="detail"></p>
-
-      <!-- Controls (shown when logged in) -->
-      <div id="controls" class="controls hidden">
-        <button id="btn-on" class="btn btn-on">Turn On</button>
-        <button id="btn-off" class="btn btn-off">Turn Off</button>
-        <button id="btn-logout" class="btn btn-link">Log out</button>
-      </div>
-
-      <!-- Login (shown when logged out) -->
-      <form id="login" class="login hidden" autocomplete="off">
-        <label for="password">Enter password to control the server</label>
-        <div class="login-row">
-          <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
-          <button id="btn-login" type="submit" class="btn">Log in</button>
+        <div class="status">
+          <span id="dot" class="dot off" aria-hidden="true"></span>
+          <span id="status-text" class="status-text">Connecting…</span>
+          <span id="spinner" class="spinner hidden" aria-hidden="true"></span>
         </div>
-      </form>
 
-      <p id="message" class="message" role="status" aria-live="polite"></p>
-    </main>
+        <p id="players" class="players hidden">Players online: <span id="player-count">0</span></p>
+        <p id="detail" class="detail"></p>
+
+        <!-- Controls (shown when logged in) -->
+        <div id="controls" class="controls hidden">
+          <button id="btn-on" class="btn btn-on">Turn On</button>
+          <button id="btn-off" class="btn btn-off">Turn Off</button>
+          <button id="btn-logout" class="btn btn-link">Log out</button>
+        </div>
+
+        <!-- Login (shown when logged out) -->
+        <form id="login" class="login hidden" autocomplete="off">
+          <label for="password">Enter password to control the server</label>
+          <div class="login-row">
+            <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
+            <button id="btn-login" type="submit" class="btn">Log in</button>
+          </div>
+        </form>
+
+        <p id="message" class="message" role="status" aria-live="polite"></p>
+      </main>
+
+      <section id="panel-settings" class="card wide hidden">
+        <h1>Game Settings</h1>
+
+        <p id="settings-login-note" class="settings-note hidden">
+          Log in on the Server tab to view and edit settings.
+        </p>
+
+        <div id="restart-banner" class="banner hidden">
+          <span>Settings saved — the server must restart for them to apply.</span>
+          <button id="btn-restart-now" class="btn btn-small">Restart Now</button>
+        </div>
+
+        <div id="settings-body" class="settings-body hidden">
+          <div id="game-settings-form" class="settings-form"></div>
+
+          <div class="save-row">
+            <button id="btn-save-settings" class="btn" disabled>Save Changes</button>
+            <button id="btn-reset-defaults" class="btn btn-link" type="button">Reset all to defaults</button>
+          </div>
+          <p id="settings-message" class="message" role="status" aria-live="polite"></p>
+
+          <details class="settings-group" open>
+            <summary>Manager</summary>
+            <div class="setting-row">
+              <div class="setting-info">
+                <label for="ms-auto-enabled">Auto-shutdown When Empty</label>
+                <p class="setting-desc">Turn the server off automatically when nobody is online.</p>
+              </div>
+              <div class="setting-control">
+                <label class="switch">
+                  <input id="ms-auto-enabled" type="checkbox" />
+                  <span class="knob"></span>
+                </label>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <label for="ms-auto-minutes">Empty Minutes Before Shutdown</label>
+                <p class="setting-desc">How long the server can sit empty before it shuts down.</p>
+              </div>
+              <div class="setting-control">
+                <input id="ms-auto-minutes-range" type="range" min="1" max="120" step="1" />
+                <input id="ms-auto-minutes" type="number" min="1" max="1440" step="1" />
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <label for="ms-power-enabled">Keep Host Awake While Running</label>
+                <p class="setting-desc">
+                  Disable Windows Energy Saver and prevent sleep while the game server is on.
+                  Requires the host power agent (scripts/host-power-agent.ps1) on the Windows host.
+                </p>
+              </div>
+              <div class="setting-control">
+                <label class="switch">
+                  <input id="ms-power-enabled" type="checkbox" />
+                  <span class="knob"></span>
+                </label>
+              </div>
+            </div>
+            <div class="save-row">
+              <button id="btn-save-manager" class="btn" disabled>Save Manager Settings</button>
+            </div>
+            <p id="manager-message" class="message" role="status" aria-live="polite"></p>
+          </details>
+        </div>
+      </section>
+    </div>
 
     <script src="app.js"></script>
+    <script src="settings.js"></script>
   </body>
 </html>

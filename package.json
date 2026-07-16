@@ -8,6 +8,7 @@
   },
   "scripts": {
     "start": "node src/index.js",
+    "test": "node --test",
     "hash-password": "node scripts/hash-password.js"
   },
   "dependencies": {

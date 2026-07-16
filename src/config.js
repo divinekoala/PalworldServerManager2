@@ -49,9 +49,15 @@ export const config = {
     password: str('REST_API_PASSWORD', ''),
   },
   autoShutdown: {
+    enabled: bool('AUTO_SHUTDOWN_ENABLED', true),
     // Allow fractional minutes (e.g. 0.05) for testing.
     emptyMinutes: num('EMPTY_SHUTDOWN_MINUTES', 15),
     pollSeconds: num('POLL_INTERVAL_SECONDS', 60),
+  },
+  hostPower: {
+    // When true, the host-side agent (scripts/host-power-agent.ps1) disables
+    // Windows Energy Saver and keeps the machine awake while the game runs.
+    enabled: bool('HOST_POWER_ENABLED', false),
   },
   timeouts: {
     startReadySeconds: num('START_READY_TIMEOUT_SECONDS', 180),

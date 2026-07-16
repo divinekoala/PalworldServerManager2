@@ -105,7 +105,7 @@ period.
 | --- | --- | --- |
 | 8211 (UDP) | yes (manager) | Palworld game traffic — players connect here |
 | 443 (TCP/UDP) | only with `--profile bundled-caddy` | HTTPS to the web UI |
-| 8080 | no | web UI on `palworld-net`; your proxy reaches it by name |
+| 8080 | loopback only (`127.0.0.1`) | web UI on `palworld-net` (your proxy reaches it by name); also polled locally by the host power agent |
 | 8212 | no | REST API, internal to the manager container only |
 
 Forward **8211/UDP** (for players) and **443** (on whichever proxy owns it) on
@@ -119,12 +119,42 @@ your router. Never expose 8212.
   `palworld-data` volume before first start (Windows and Linux saves are
   compatible). If you bring your own `PalWorldSettings.ini`, the entrypoint only
   *adds* the REST API keys if they're missing; it won't overwrite your settings.
+- **Web UI settings:** game settings edited on the Settings tab are written
+  straight into `PalWorldSettings.ini` on the `palworld-data` volume (a one-time
+  `.ini.bak` backup of the original is kept next to it). Manager settings
+  (auto-shutdown) are stored in `/palworld/manager-data/manager-settings.json`
+  (`MANAGER_DATA_DIR` in `docker-compose.yml`), also on the volume, so both
+  survive rebuilds.
 - **Game updates:** with `UPDATE_ON_BOOT=true`, each container start re-validates
   the install via SteamCMD. Set it to `false` to pin the current version.
 - **Graceful stop:** `docker stop` / `docker compose down` sends SIGTERM; the
   manager saves and gracefully shuts the running game down before exiting.
   `stop_grace_period` in `docker-compose.yml` (default 3m) gives it time — keep
   it ≥ `STOP_TIMEOUT_SECONDS`.
+
+## Keeping the Windows host awake (host power agent)
+
+The manager runs inside Docker and can't touch the host's power settings, so a
+tiny native agent handles that part. While the game server is running **and**
+"Keep Host Awake While Running" is enabled (Settings tab → Manager, or
+`HOST_POWER_ENABLED=true`), the agent:
+
+- blocks Windows from sleeping (`SetThreadExecutionState`), and
+- disables Windows Energy Saver by setting its auto-on battery threshold to 0%.
+
+Both are restored when the server stops, the setting is turned off, or the
+agent exits — including recovery after a crash.
+
+Install it once as a hidden logon task (run from an **elevated** PowerShell):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\host-power-agent.ps1 -Install
+```
+
+It polls `http://127.0.0.1:8080/api/host-power` (the loopback-only port
+published in `docker-compose.yml`) every 15 seconds; the endpoint is read-only
+and needs no credentials. To test in the foreground, run the script without
+`-Install`; remove the task with `-Uninstall`.
 
 ## Updating the manager itself
 

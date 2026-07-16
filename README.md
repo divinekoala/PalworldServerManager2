@@ -7,12 +7,22 @@ A lightweight Node.js manager for a self-hosted **Palworld dedicated server** on
   configurable period (default **15 minutes**), so it stops eating resources
   when empty.
 - Serves a **password-protected web UI** to manually **turn the server on/off**.
+- Has a **Settings tab** to edit game balance, features, and performance options
+  from `PalWorldSettings.ini` (sliders, toggles, dropdowns) — operational keys
+  like passwords, ports, and the server name are never exposed. Saving offers a
+  one-click **restart** to apply. The auto-shutdown timer is editable there too
+  and applies live.
 - Shows **live transitional states** — clicking *Turn On* shows
   *"Turning on…"* until the server is actually up, then *"Server is ON"*
   (and the reverse for shutdown). Updates stream in real time via
   Server-Sent Events.
 - Talks to the game server over the **Palworld REST API** (localhost only —
   never exposed), which is the supported path now that RCON is deprecated.
+- Can **keep the Windows host awake** (block sleep, disable Energy Saver) while
+  the game server is running, even when the manager runs in Docker — a small
+  host-side agent (`scripts/host-power-agent.ps1`) polls the manager and toggles
+  power settings natively. Enable it on the Settings tab. See
+  [docs/DOCKER.md](docs/DOCKER.md#keeping-the-windows-host-awake-host-power-agent).
 - Ships with a **Caddyfile**, a **DuckDNS updater**, and a full setup guide so
   the UI is reachable over **HTTPS** at `https://<you>.duckdns.org`.
 
@@ -55,6 +65,9 @@ at `palworld-manager:8080`, or run the bundled Caddy with
 | Palworld REST API client | `src/palApi.js` |
 | HTTP API, SSE stream, login/session | `src/httpServer.js` |
 | Password hashing (scrypt) + signed session cookies | `src/auth.js` |
+| `PalWorldSettings.ini` parser/writer (round-trip safe, atomic, `.bak`) | `src/palSettings.js` |
+| Whitelist of UI-editable game settings (types, ranges, defaults) | `src/settingsCatalog.js` |
+| Persisted manager overrides (auto-shutdown from the UI) | `src/managerSettings.js` |
 | Config loader + validation | `src/config.js` |
 | Web UI (no build step) | `public/` |
 | Caddy + DuckDNS deploy assets | `deploy/` |

@@ -58,6 +58,9 @@ function render(status) {
   btnOff.disabled = !authed || status.state !== 'ON';
   btnOn.classList.toggle('hidden', status.state === 'ON');
   btnOff.classList.toggle('hidden', status.state !== 'ON' && status.state !== 'STOPPING');
+
+  // Let other scripts (settings.js) follow the live server state.
+  window.dispatchEvent(new CustomEvent('psm:state', { detail: { state: status.state } }));
 }
 
 function applyAuth(isAuthed) {
@@ -65,6 +68,7 @@ function applyAuth(isAuthed) {
   controls.classList.toggle('hidden', !authed);
   loginForm.classList.toggle('hidden', authed);
   render({ state: currentState || 'OFF', players: playerCount.textContent });
+  window.dispatchEvent(new CustomEvent('psm:auth', { detail: { authed: isAuthed } }));
 }
 
 // ── Live updates via SSE, with polling fallback ───────────────────────────────

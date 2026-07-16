@@ -26,8 +26,13 @@ services:
       WEB_HOST: 0.0.0.0 # reachable on the docker network only (not published)
       REST_API_BASE: http://127.0.0.1:8212
       SECURE_COOKIES: "true"
+      # Persist UI-edited manager settings on the game-data volume.
+      MANAGER_DATA_DIR: /palworld/manager-data
     ports:
       - "8211:8211/udp" # game traffic — players connect here
+      # Loopback-only web API so the host power agent (scripts/host-power-agent.ps1)
+      # can poll /api/host-power. Not reachable from the network.
+      - "127.0.0.1:8080:8080"
       # - "27015:27015/udp" # optional Steam query port
     volumes:
       - palworld-data:/palworld

@@ -1,4 +1,5 @@
 import { config, validateConfig } from './config.js';
+import { loadOverrides, applyOverrides } from './managerSettings.js';
 import { createPalApi } from './palApi.js';
 import { ServerManager } from './serverManager.js';
 import { createHttpServer } from './httpServer.js';
@@ -15,6 +16,9 @@ async function main() {
     console.error('\nCopy .env.example to .env and fill in the missing values.');
     process.exit(1);
   }
+
+  // Persisted UI overrides (e.g. auto-shutdown settings) win over .env defaults.
+  applyOverrides(config, loadOverrides());
 
   const api = createPalApi({
     base: config.rest.base,
