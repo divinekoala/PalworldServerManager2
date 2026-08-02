@@ -32,10 +32,9 @@ export const EXCLUDED_KEYS = new Set([
   'Region',
   'BanListURL',
   'LogFormatType',
-  'bIsUseBackupSaveData',
   'CoopPlayerMaxNum',
   'CrossplayPlatforms',
-  'bShowPlayerList',
+  'DenyTechnologyList',
 ]);
 
 const rate = (key, label, description, extra = {}) => ({
@@ -83,6 +82,9 @@ export const CATALOG = [
   rate('CollectionObjectRespawnSpeedRate', 'Gatherable Respawn Speed', 'Respawn interval multiplier for gatherable objects (higher = slower respawn).', { min: 0.5, max: 3 }),
   rate('EnemyDropItemRate', 'Enemy Drop Rate', 'Items dropped by defeated enemies.', { min: 0.5, max: 3 }),
   rate('ItemWeightRate', 'Item Weight', 'Multiplier for item weight (lower = carry more).'),
+  rate('EquipmentDurabilityDamageRate', 'Equipment Durability Loss', 'Multiplier for equipment durability loss.'),
+  rate('ItemCorruptionMultiplier', 'Item Corruption Speed', 'Multiplier for how fast items corrode.'),
+  rate('MonsterFarmActionSpeedRate', 'Ranch Production Speed', 'Multiplier for item production speed from grazing Pals.'),
   {
     key: 'PalEggDefaultHatchingTime',
     label: 'Egg Hatching Time (hours)',
@@ -99,7 +101,7 @@ export const CATALOG = [
   rate('DayTimeSpeedRate', 'Day Speed', 'How fast daytime passes.', { category: 'world' }),
   rate('NightTimeSpeedRate', 'Night Speed', 'How fast nighttime passes.', { category: 'world' }),
   {
-    key: 'BaseCampCount',
+    key: 'BaseCampMaxNum',
     label: 'Max Base Camps',
     description: 'Maximum number of base camps on the server (across all guilds).',
     type: 'int',
@@ -107,6 +109,17 @@ export const CATALOG = [
     max: 512,
     step: 1,
     default: 128,
+    category: 'world',
+  },
+  {
+    key: 'BaseCampMaxNumInGuild',
+    label: 'Max Base Camps per Guild',
+    description: 'Maximum number of base camps a single guild can own.',
+    type: 'int',
+    min: 1,
+    max: 10,
+    step: 1,
+    default: 4,
     category: 'world',
   },
   {
@@ -179,6 +192,45 @@ export const CATALOG = [
     default: 1,
     category: 'world',
   },
+  flag('bBuildAreaLimit', 'Limit Building Near Landmarks', 'Prevent building near structures such as fast-travel points.', false, 'world'),
+  {
+    key: 'GuildRejoinCooldownMinutes',
+    label: 'Guild Rejoin Cooldown (min)',
+    description: 'Minutes a player must wait before rejoining a guild after leaving it.',
+    type: 'int',
+    min: 0,
+    max: 1440,
+    step: 1,
+    default: 0,
+    category: 'world',
+  },
+  flag(
+    'bIsRandomizerPalLevelRandom',
+    'Fully Random Pal Levels',
+    'Wild Pal levels are fully random instead of scaled to each area’s intended range.',
+    false,
+    'world'
+  ),
+  {
+    key: 'RandomizerType',
+    label: 'Pal Spawn Randomization',
+    description: 'None = no randomization, Region = randomize per region, All = fully randomized.',
+    type: 'enum',
+    options: ['None', 'Region', 'All'],
+    default: 'None',
+    category: 'world',
+  },
+  {
+    key: 'RandomizerSeed',
+    label: 'Pal Spawn Randomizer Seed',
+    description: 'Seed value used when Pal spawn randomization is enabled.',
+    type: 'int',
+    min: 0,
+    max: 2147483647,
+    step: 1,
+    default: 0,
+    category: 'world',
+  },
 
   // ── Difficulty & Death ─────────────────────────────────────────────────────
   {
@@ -208,6 +260,72 @@ export const CATALOG = [
     false,
     'difficulty'
   ),
+  {
+    key: 'BlockRespawnTime',
+    label: 'Respawn Cooldown (sec)',
+    description: 'Cooldown before a player can respawn after death.',
+    type: 'float',
+    min: 0,
+    max: 300,
+    step: 1,
+    default: 0,
+    category: 'difficulty',
+  },
+  {
+    key: 'RespawnPenaltyDurationThreshold',
+    label: 'Respawn Penalty Threshold (sec)',
+    description: 'Survival time below which the respawn cooldown multiplier applies on the next death.',
+    type: 'float',
+    min: 0,
+    max: 3600,
+    step: 1,
+    default: 0,
+    category: 'difficulty',
+  },
+  {
+    key: 'RespawnPenaltyTimeScale',
+    label: 'Respawn Penalty Multiplier',
+    description: 'Multiplier applied to the respawn cooldown when the threshold above is triggered.',
+    type: 'float',
+    min: 0,
+    max: 10,
+    step: 0.1,
+    default: 1,
+    category: 'difficulty',
+  },
+  flag(
+    'bIsPvP',
+    'PvP Mode',
+    'Enable full PvP mode.',
+    false,
+    'difficulty'
+  ),
+  flag(
+    'bAdditionalDropItemWhenPlayerKillingInPvPMode',
+    'Drop Bonus Item on PvP Kill',
+    'Drop a special item when a player is killed while PvP is enabled.',
+    false,
+    'difficulty'
+  ),
+  {
+    key: 'AdditionalDropItemWhenPlayerKillingInPvPMode',
+    label: 'PvP Kill Bonus Item ID',
+    description: 'Item ID to drop on a PvP kill (needs the toggle above).',
+    type: 'string',
+    default: '',
+    category: 'difficulty',
+  },
+  {
+    key: 'AdditionalDropItemNumWhenPlayerKillingInPvPMode',
+    label: 'PvP Kill Bonus Item Quantity',
+    description: 'Quantity of the item above to drop on a PvP kill.',
+    type: 'int',
+    min: 0,
+    max: 999,
+    step: 1,
+    default: 1,
+    category: 'difficulty',
+  },
 
   // ── Features ───────────────────────────────────────────────────────────────
   flag('bEnableInvaderEnemy', 'Base Raids', 'Enemy groups periodically raid player bases.', true),
@@ -222,6 +340,68 @@ export const CATALOG = [
   flag('bEnableAimAssistKeyboard', 'Aim Assist (Keyboard)', 'Aim assist for mouse & keyboard players.', false),
   flag('bEnableNonLoginPenalty', 'Non-login Penalty', 'Apply penalties (e.g. hunger) to players who stay offline.', true),
   flag('bActiveUNKO', 'Enable UNKO', 'Enable the UNKO item.', false),
+  flag('bAllowEnhanceStat_Attack', 'Allow Stat Points: Attack', 'Allow allocating stat points to Attack.', true),
+  flag('bAllowEnhanceStat_Health', 'Allow Stat Points: HP', 'Allow allocating stat points to HP.', true),
+  flag('bAllowEnhanceStat_Stamina', 'Allow Stat Points: Stamina', 'Allow allocating stat points to Stamina.', true),
+  flag('bAllowEnhanceStat_Weight', 'Allow Stat Points: Carry Weight', 'Allow allocating stat points to Carry Weight.', true),
+  flag('bAllowEnhanceStat_WorkSpeed', 'Allow Stat Points: Work Speed', 'Allow allocating stat points to Work Speed.', true),
+  flag('bAllowGlobalPalboxExport', 'Global Palbox Export', 'Allow saving Pals to the Global Palbox.', true),
+  flag('bAllowGlobalPalboxImport', 'Global Palbox Import', 'Allow loading Pals from the Global Palbox.', false),
+  flag(
+    'bDisplayPvPItemNumOnWorldMap_BaseCamp',
+    'Show Base PvP Item Counts on Map',
+    'Show the number of PvP-exclusive items in each base on the world map.',
+    true
+  ),
+  flag(
+    'bDisplayPvPItemNumOnWorldMap_Player',
+    'Show Player PvP Item Counts on Map',
+    'Show player locations and PvP-exclusive item counts on the world map.',
+    true
+  ),
+  flag(
+    'bEnableFastTravelOnlyBaseCamp',
+    'Fast Travel Between Bases Only',
+    'Restrict fast travel to only between bases.',
+    false
+  ),
+  flag('bEnableVoiceChat', 'In-game Voice Chat', 'Enable in-game voice chat.', true),
+  {
+    key: 'VoiceChatMaxVolumeDistance',
+    label: 'Voice Chat Full Volume Distance',
+    description: 'Distance at which voice chat volume starts to attenuate.',
+    type: 'float',
+    min: 0,
+    max: 10000,
+    step: 100,
+    default: 3000,
+    category: 'features',
+  },
+  {
+    key: 'VoiceChatZeroVolumeDistance',
+    label: 'Voice Chat Zero Volume Distance',
+    description: 'Distance at which voice chat volume becomes zero.',
+    type: 'float',
+    min: 0,
+    max: 20000,
+    step: 100,
+    default: 6000,
+    category: 'features',
+  },
+  flag('bAllowClientMod', 'Allow Mods', 'Allow players with mods enabled to join the server.', false),
+  flag(
+    'bEnableBuildingPlayerUIdDisplay',
+    'Show Builder ID on Structures',
+    'Display the creator’s player ID on structures.',
+    false
+  ),
+  flag(
+    'bIsShowJoinLeftMessage',
+    'Join/Leave Messages',
+    'Show in-game messages when players join or leave.',
+    true
+  ),
+  flag('bShowPlayerList', 'Player List (ESC Menu)', 'Enable the player list on the ESC menu.', true),
   {
     key: 'SupplyDropSpan',
     label: 'Supply Drop Interval (min)',
@@ -279,6 +459,46 @@ export const CATALOG = [
     default: 10,
     category: 'performance',
   },
+  flag(
+    'bIsUseBackupSaveData',
+    'World Backups',
+    'Keep rolling backups of the world save data. Increases disk load.',
+    true,
+    'performance'
+  ),
+  {
+    key: 'ItemContainerForceMarkDirtyInterval',
+    label: 'Container Sync Interval (sec)',
+    description: 'How often to force re-sync while a container UI (chest, box) is open.',
+    type: 'float',
+    min: 0,
+    max: 60,
+    step: 0.1,
+    default: 1,
+    category: 'performance',
+  },
+  {
+    key: 'PhysicsActiveDropItemMaxNum',
+    label: 'Max Physics-active Dropped Items',
+    description: 'Maximum number of dropped items that can use physics behavior. Lower improves performance.',
+    type: 'int',
+    min: 0,
+    max: 5000,
+    step: 100,
+    default: 3000,
+    category: 'performance',
+  },
+  {
+    key: 'ServerReplicatePawnCullDistance',
+    label: 'Pal Sync Distance (cm)',
+    description: 'Distance from players at which Pals are synced. Lower improves performance.',
+    type: 'float',
+    min: 5000,
+    max: 15000,
+    step: 500,
+    default: 15000,
+    category: 'performance',
+  },
 ];
 
 export const CATALOG_MAP = new Map(CATALOG.map((e) => [e.key, e]));
@@ -308,6 +528,8 @@ export function validateValue(entry, value) {
     }
     case 'enum':
       return entry.options.includes(value) ? null : `must be one of: ${entry.options.join(', ')}`;
+    case 'string':
+      return typeof value === 'string' ? null : 'must be a string';
     default:
       return `unsupported type ${entry.type}`;
   }

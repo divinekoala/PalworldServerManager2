@@ -172,6 +172,8 @@
       api = buildToggle(entry, value, controlBox);
     } else if (entry.type === 'enum') {
       api = buildSelect(entry, value, controlBox);
+    } else if (entry.type === 'string') {
+      api = buildText(entry, value, controlBox);
     } else {
       api = buildNumber(entry, value, controlBox);
     }
@@ -257,6 +259,16 @@
       },
       set,
     };
+  }
+
+  function buildText(entry, value, parent) {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = `set-${entry.key}`;
+    input.value = value ?? '';
+    parent.appendChild(input);
+    input.addEventListener('input', updateDirty);
+    return { get: () => input.value, set: (v) => (input.value = v ?? '') };
   }
 
   // ── Dirty tracking / save ───────────────────────────────────────────────────
