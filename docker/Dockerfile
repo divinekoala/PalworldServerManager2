@@ -35,6 +35,11 @@ RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/configure-settings.sh
 # Game install dir (mounted as a named volume in compose so saves persist).
 RUN mkdir -p /palworld && chown -R steam:steam /palworld /app
 
+# The base image bakes in the Steam HTTP/app cache from whenever it was built.
+# Once that goes stale, `app_update` fails with "Missing configuration" or
+# "state is 0x6". Drop it so every fresh container fetches current app info.
+RUN rm -rf /home/steam/Steam/appcache/*
+
 USER steam
 
 # 8080 = web UI (internal, proxied by Caddy); 8211/udp = game traffic;
