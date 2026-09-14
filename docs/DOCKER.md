@@ -127,6 +127,17 @@ your router. Never expose 8212.
   survive rebuilds.
 - **Game updates:** with `UPDATE_ON_BOOT=true`, each container start re-validates
   the install via SteamCMD. Set it to `false` to pin the current version.
+  To pull a new Palworld release, run the helper on the Windows host:
+
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File scripts\update-palworld-server.ps1
+  ```
+
+  It compares the installed build id against Steam, warns if the game is
+  running, restarts the container (graceful save + shutdown first), follows the
+  SteamCMD log, and reports the new build id. Add `-Check` to only compare
+  versions, `-Force` to skip the "players will be disconnected" prompt. The game
+  is not auto-started afterwards — start it from the web UI.
 - **Graceful stop:** `docker stop` / `docker compose down` sends SIGTERM; the
   manager saves and gracefully shuts the running game down before exiting.
   `stop_grace_period` in `docker-compose.yml` (default 3m) gives it time — keep
