@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a3d5a"/>
+      <stop offset="1" stop-color="#121a26"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.55">
+      <stop offset="0" stop-color="#3cc3cf" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#3cc3cf" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7fe3e9"/>
+      <stop offset="0.45" stop-color="#3fc1cd"/>
+      <stop offset="1" stop-color="#2690a0"/>
+    </linearGradient>
+    <linearGradient id="tailSkin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#46c6d1"/>
+      <stop offset="1" stop-color="#2a9aa8"/>
+    </linearGradient>
+    <linearGradient id="cream" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fdf8dc"/>
+      <stop offset="1" stop-color="#e3d7a0"/>
+    </linearGradient>
+    <path id="body" d="M100 128 C100 95 140 72 180 70 C222 68 248 92 246 122 C244 160 250 200 268 238 C300 270 352 300 362 360 C370 410 345 445 300 452 C260 458 200 458 170 448 C130 435 118 395 122 350 C126 300 140 260 142 220 C144 195 148 175 150 162 C130 160 102 150 100 128 Z"/>
+    <clipPath id="bodyClip"><use href="#body"/></clipPath>
+    <path id="tail" d="M330 300 C380 304 410 292 420 266 L470 258 C466 340 408 396 338 414 Z"/>
+    <clipPath id="tailClip"><use href="#tail"/></clipPath>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#glow)"/>
+
+  <g transform="translate(-33 -12)">
+    <!-- ground shadow -->
+    <ellipse cx="262" cy="462" rx="150" ry="16" fill="#0b1018" opacity="0.55"/>
+
+    <!-- tail -->
+    <use href="#tail" fill="url(#tailSkin)"/>
+    <g clip-path="url(#tailClip)" fill="none" stroke="#2b3f88" stroke-width="17" stroke-linecap="round">
+      <path d="M350 322 C390 320 418 304 438 274"/>
+      <path d="M352 358 C400 352 436 326 460 290"/>
+    </g>
+    <circle cx="440" cy="240" r="38" fill="url(#tailSkin)"/>
+    <path d="M448 246 C448 260 424 260 423 242 C422 222 454 216 462 238 C469 260 448 278 424 274" fill="none" stroke="#1f7480" stroke-width="7" stroke-linecap="round"/>
+
+    <!-- far arm + far foot (behind body) -->
+    <ellipse cx="126" cy="292" rx="30" ry="20" transform="rotate(-18 126 292)" fill="#36b3c0"/>
+    <ellipse cx="320" cy="452" rx="46" ry="18" fill="#2a95a3"/>
+
+    <!-- body -->
+    <use href="#body" fill="url(#skin)"/>
+    <g clip-path="url(#bodyClip)">
+      <!-- belly -->
+      <path d="M150 150 C185 165 200 205 208 245 C222 290 282 320 292 375 C300 420 262 442 215 442 C170 442 128 425 115 390 L90 150 Z" fill="url(#cream)"/>
+      <!-- back shading -->
+      <path d="M246 110 C250 200 270 245 300 268 C350 300 370 360 362 420 L420 420 L420 90 Z" fill="#1f7f8d" opacity="0.35"/>
+    </g>
+    <!-- head highlight -->
+    <ellipse cx="162" cy="86" rx="24" ry="8" transform="rotate(-12 162 86)" fill="#ffffff" opacity="0.35"/>
+
+    <!-- near leg -->
+    <path d="M136 456 C130 430 150 412 182 412 C216 412 238 428 240 456 Z" fill="#3cbcc8"/>
+    <ellipse cx="180" cy="456" rx="58" ry="16" fill="#3cbcc8"/>
+    <path d="M150 424 C166 416 196 416 212 424" fill="none" stroke="#2a9aa8" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+
+    <!-- near arm with fist -->
+    <path d="M292 286 L252 304" stroke="#3ab8c5" stroke-width="34" stroke-linecap="round"/>
+    <ellipse cx="244" cy="322" rx="26" ry="8" fill="#cbbd84" opacity="0.6"/>
+    <circle cx="240" cy="302" r="25" fill="#43c2cd"/>
+    <path d="M224 300 C232 310 248 311 258 302" fill="none" stroke="#2690a0" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- face -->
+    <circle cx="186" cy="102" r="9" fill="#10161d"/>
+    <circle cx="189" cy="99" r="3" fill="#ffffff"/>
+    <path d="M110 140 C128 150 152 148 168 134" fill="none" stroke="#14525b" stroke-width="6" stroke-linecap="round"/>
+  </g>
+</svg>
