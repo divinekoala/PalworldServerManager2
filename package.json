@@ -12,7 +12,7 @@
     "hash-password": "node scripts/hash-password.js"
   },
   "dependencies": {
-    "cookie": "^0.6.0",
+    "cookie": "^0.7.2",
     "dotenv": "^16.4.5",
     "express": "^4.19.2"
   },
