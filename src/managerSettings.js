@@ -1,12 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { DATA_DIR } from './dataDir.js';
 
 // Overrides live in a small JSON file so they survive manager restarts.
-// In Docker, point MANAGER_DATA_DIR at the game-data volume (see compose file).
-const DATA_DIR = process.env.MANAGER_DATA_DIR || path.join(__dirname, '..', 'data');
 const FILE = path.join(DATA_DIR, 'manager-settings.json');
 
 function log(...args) {

@@ -2,7 +2,9 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as cookie from 'cookie';
-import { verifyPassword, createSession, verifySession } from './auth.js';
+import { verifyPassword, createSession, readSession } from './auth.js';
+import { PasskeyStore } from './passkeyStore.js';
+import { registerPasskeyRoutes } from './passkeyRoutes.js';
 import {
   readSettings,
   serialize,
@@ -18,34 +20,122 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const SESSION_COOKIE = 'psm_session';
 
-// Simple in-memory login rate limiter: max attempts per IP per window.
+// Simple in-memory sign-in rate limiter: max failed attempts per IP per window.
+// Password and passkey failures share it.
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_WINDOW_MS = 5 * 60 * 1000;
 
-export function createHttpServer(config, manager) {
+function createLimiter() {
+  const attempts = new Map(); // ip -> { count, resetAt }
+  const current = (ip) => {
+    const rec = attempts.get(ip);
+    if (rec && Date.now() > rec.resetAt) {
+      attempts.delete(ip);
+      return undefined;
+    }
+    return rec;
+  };
+  return {
+    blocked: (ip = 'unknown') => (current(ip)?.count ?? 0) >= LOGIN_MAX_ATTEMPTS,
+    fail(ip = 'unknown') {
+      const rec = current(ip) ?? { count: 0, resetAt: Date.now() + LOGIN_WINDOW_MS };
+      rec.count += 1;
+      attempts.set(ip, rec);
+    },
+    clear: (ip = 'unknown') => attempts.delete(ip),
+  };
+}
+
+export function createHttpServer(config, manager, { passkeys = new PasskeyStore() } = {}) {
   const app = express();
   app.set('trust proxy', 1); // behind Caddy
   app.use(express.json());
 
-  const loginAttempts = new Map(); // ip -> { count, resetAt }
+  const limiter = createLimiter();
 
-  function isAuthed(req) {
-    const cookies = cookie.parse(req.headers.cookie || '');
-    return verifySession(cookies[SESSION_COOKIE], config.auth.sessionSecret);
+  // Password sign-in needs a password, and the admin switch on. A damaged
+  // passkeys.json counts as "off": the switch might be off in it.
+  function passwordLoginActive() {
+    if (!config.auth.passwordHash) return false;
+    try {
+      return passkeys.passwordLoginEnabled();
+    } catch {
+      return false;
+    }
   }
 
+  /**
+   * Who sent this request: a passkey friend, the password (an admin), or
+   * nobody. Checked on every request, so a removed friend or the password
+   * switched off ends those sessions at once.
+   */
+  function whoIs(req) {
+    const cookies = cookie.parse(req.headers.cookie || '');
+    const payload = readSession(cookies[SESSION_COOKIE], config.auth.sessionSecret);
+    if (!payload) return null;
+    if (!payload.uid || payload.uid === 'password') {
+      return passwordLoginActive() ? { uid: 'password', name: 'Admin (password)', admin: true, passkey: false } : null;
+    }
+    let user;
+    try {
+      user = passkeys.getUser(payload.uid);
+    } catch {
+      return null;
+    }
+    return user ? { uid: user.id, name: user.name, admin: Boolean(user.admin), passkey: true } : null;
+  }
+
+  const roleOf = (who) => (who ? (who.admin ? 'admin' : 'friend') : null);
+
   function requireAuth(req, res, next) {
-    if (isAuthed(req)) return next();
-    res.status(401).json({ error: 'authentication required' });
+    const who = whoIs(req);
+    if (!who) return res.status(401).json({ error: 'authentication required' });
+    req.who = who;
+    next();
+  }
+
+  // Friends may turn the server on and off. Everything else is for admins.
+  function requireAdmin(req, res, next) {
+    const who = whoIs(req);
+    if (!who) return res.status(401).json({ error: 'authentication required' });
+    if (!who.admin) return res.status(403).json({ error: 'Only an admin can do that.' });
+    req.who = who;
+    next();
+  }
+
+  function sessionCookie(res, token, maxAge) {
+    res.setHeader(
+      'Set-Cookie',
+      cookie.serialize(SESSION_COOKIE, token, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: config.web.secureCookies,
+        path: '/',
+        maxAge,
+      })
+    );
+  }
+
+  function startSession(res, uid) {
+    const token = createSession(config.auth.sessionSecret, config.auth.sessionTtlHours, { uid });
+    sessionCookie(res, token, config.auth.sessionTtlHours * 3600);
   }
 
   // ── Read-only status ───────────────────────────────────────────────────────
   app.get('/api/status', (req, res) => {
-    res.json({ ...manager.getStatus(), authed: isAuthed(req) });
+    const who = whoIs(req);
+    res.json({ ...manager.getStatus(), authed: Boolean(who), role: roleOf(who) });
   });
 
   app.get('/api/me', (req, res) => {
-    res.json({ authenticated: isAuthed(req) });
+    const who = whoIs(req);
+    res.json({
+      authenticated: Boolean(who),
+      role: roleOf(who),
+      name: who?.name ?? null,
+      passkey: Boolean(who?.passkey),
+      passwordLogin: passwordLoginActive(),
+    });
   });
 
   // Polled by scripts/host-power-agent.ps1 on the Windows host (loopback only —
@@ -86,50 +176,30 @@ export function createHttpServer(config, manager) {
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   app.post('/api/login', (req, res) => {
-    const ip = req.ip || 'unknown';
-    const now = Date.now();
-    let rec = loginAttempts.get(ip);
-    if (rec && now > rec.resetAt) rec = undefined;
-    if (rec && rec.count >= LOGIN_MAX_ATTEMPTS) {
+    if (!passwordLoginActive()) {
+      return res.status(403).json({ error: 'Password sign-in is off. Sign in with a passkey.' });
+    }
+    if (limiter.blocked(req.ip)) {
       return res.status(429).json({ error: 'too many attempts, try again later' });
     }
 
     const password = req.body?.password ?? '';
     if (verifyPassword(password, config.auth.passwordHash)) {
-      loginAttempts.delete(ip);
-      const token = createSession(config.auth.sessionSecret, config.auth.sessionTtlHours);
-      res.setHeader(
-        'Set-Cookie',
-        cookie.serialize(SESSION_COOKIE, token, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: config.web.secureCookies,
-          path: '/',
-          maxAge: config.auth.sessionTtlHours * 3600,
-        })
-      );
-      return res.json({ ok: true });
+      limiter.clear(req.ip);
+      startSession(res, 'password');
+      return res.json({ ok: true, role: 'admin' });
     }
 
-    rec = rec || { count: 0, resetAt: now + LOGIN_WINDOW_MS };
-    rec.count += 1;
-    loginAttempts.set(ip, rec);
+    limiter.fail(req.ip);
     res.status(401).json({ error: 'invalid password' });
   });
 
   app.post('/api/logout', (req, res) => {
-    res.setHeader(
-      'Set-Cookie',
-      cookie.serialize(SESSION_COOKIE, '', {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: config.web.secureCookies,
-        path: '/',
-        maxAge: 0,
-      })
-    );
+    sessionCookie(res, '', 0);
     res.json({ ok: true });
   });
+
+  registerPasskeyRoutes(app, { config, passkeys, limiter, requireAuth, requireAdmin, startSession });
 
   // ── Mutating controls (auth required) ───────────────────────────────────────
   app.post('/api/start', requireAuth, (req, res) => {
@@ -142,7 +212,7 @@ export function createHttpServer(config, manager) {
     res.status(result.accepted ? 202 : 409).json(result);
   });
 
-  app.post('/api/restart', requireAuth, (req, res) => {
+  app.post('/api/restart', requireAdmin, (req, res) => {
     const result = manager.restart();
     res.status(result.accepted ? 202 : 409).json(result);
   });
@@ -150,7 +220,7 @@ export function createHttpServer(config, manager) {
   // ── Game settings (PalWorldSettings.ini) ────────────────────────────────────
   const catalogDefaults = () => CATALOG.map((e) => [e.key, typedToRaw(e.default, e.type)]);
 
-  app.get('/api/settings', requireAuth, (req, res) => {
+  app.get('/api/settings', requireAdmin, (req, res) => {
     try {
       const { parsed, fileExists } = readSettings(config, catalogDefaults());
       const values = {};
@@ -171,7 +241,7 @@ export function createHttpServer(config, manager) {
     }
   });
 
-  app.put('/api/settings', requireAuth, (req, res) => {
+  app.put('/api/settings', requireAdmin, (req, res) => {
     if (manager.state === 'STARTING' || manager.state === 'STOPPING') {
       return res
         .status(409)
@@ -208,7 +278,7 @@ export function createHttpServer(config, manager) {
   });
 
   // ── Manager settings (auto-shutdown, host power) ────────────────────────────
-  app.get('/api/manager-settings', requireAuth, (req, res) => {
+  app.get('/api/manager-settings', requireAdmin, (req, res) => {
     res.json({
       autoShutdown: {
         enabled: config.autoShutdown.enabled,
@@ -220,7 +290,7 @@ export function createHttpServer(config, manager) {
     });
   });
 
-  app.put('/api/manager-settings', requireAuth, (req, res) => {
+  app.put('/api/manager-settings', requireAdmin, (req, res) => {
     const as = req.body?.autoShutdown;
     const hp = req.body?.hostPower;
     if (!as || typeof as !== 'object' || !hp || typeof hp !== 'object') {

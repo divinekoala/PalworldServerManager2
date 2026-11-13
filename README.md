@@ -6,7 +6,11 @@ A lightweight Node.js manager for a self-hosted **Palworld dedicated server** on
 - **Auto-saves and shuts the server down** when nobody has been online for a
   configurable period (default **15 minutes**), so it stops eating resources
   when empty.
-- Serves a **password-protected web UI** to manually **turn the server on/off**.
+- Serves a **web UI** to manually **turn the server on/off**. Each friend signs
+  in with their own **passkey** (fingerprint, face or screen lock), from a
+  one-time invite link. An admin password is there for the start.
+- Has a **Friends tab** for admins: invite people, remove them, and switch the
+  password off once everybody has a passkey.
 - Has a **Settings tab** to edit game balance, features, and performance options
   from `PalWorldSettings.ini` (sliders, toggles, dropdowns) — operational keys
   like passwords, ports, and the server name are never exposed. Saving offers a
@@ -78,15 +82,67 @@ time. The server data is always saved before the process stops.
 
 ## Requirements
 
-- Node.js 18+ (uses built-in `fetch`)
+- Node.js 22+ (the passkey library needs it)
 - A Palworld dedicated server with the REST API enabled
   (`RESTAPIEnabled=True`, `RESTAPIPort=8212`, `AdminPassword` set in
   `PalWorldSettings.ini`)
 
+## Passkeys
+
+Each person signs in with their own passkey. Nobody can make an account on
+their own: an admin sends a one-time invite link.
+
+| Who | Can |
+|---|---|
+| Friend | Turn the server on and off. |
+| Admin | Also restart it, change game and manager settings, and use the Friends tab. |
+| The admin password | The same as an admin, while password sign-in is on. |
+
+**Move over from the password**
+
+1. Sign in with the admin password.
+2. Open **Friends**. Invite yourself, with **Admin** ticked. Open the link on
+   your phone and tap **Create passkey**. Repeat with **Link for another
+   device** for each of your other devices, or let your phone's passkey sync
+   (iCloud Keychain, Google Password Manager) carry it.
+3. Invite each friend (without **Admin**). Send each one their own link. A link
+   works once, for 7 days. On the link's page, the friend taps
+   **Create passkey**, and is signed in.
+4. When everybody has a passkey, switch **Allow the admin password** off on the
+   Friends tab. Password sessions end at once. The switch refuses while no
+   admin has a passkey.
+
+A friend who gets a new phone uses **Add another device** on the Server tab
+while signed in, or asks an admin for a link.
+
+**Notes**
+
+- The friends and passkeys are in `passkeys.json` in `MANAGER_DATA_DIR` (the
+  game-data volume in Docker). It holds public keys and the hashes of open
+  invite links, never a working link. If the file is damaged, the manager
+  refuses password sign-in rather than allowing it; move the file aside to start
+  again with no passkeys.
+- A passkey is tied to the site's address. If the address changes, every
+  passkey must be made again. Set `PASSKEY_ORIGIN` to fix the address, or the
+  manager uses the address of each request.
+- Removing a friend, or one of their passkeys, takes effect at once.
+- Sign-in failures (password or passkey) share one limit: 5 per address in
+  5 minutes.
+
+**Locked out?** On the machine the manager runs on, make a new admin link:
+
+```bash
+npm run passkey-invite -- --admin <name>
+# in Docker:
+docker compose exec palworld-manager node scripts/passkey-invite.js --admin <name>
+```
+
+`--device <name>` makes a link for another device of an existing friend.
+
 ## Security notes
 
-- The web UI requires a password (scrypt-hashed) for start/stop. Status is
-  read-only and public so the page can show state.
+- The web UI needs a passkey, or the admin password while it is on, for
+  start/stop. Status is read-only and public so the page can show state.
 - The Palworld REST API is plaintext and **must stay bound to localhost** —
   never port-forward 8212.
 - Only port 443 (and 80 if you use the HTTP-01 TLS challenge) should be exposed

@@ -15,7 +15,22 @@
       <nav class="tabs" role="tablist">
         <button class="tab active" data-tab="server" role="tab" aria-selected="true">Server</button>
         <button class="tab" data-tab="settings" role="tab" aria-selected="false">Settings</button>
+        <button id="tab-friends" class="tab hidden" data-tab="friends" role="tab" aria-selected="false">Friends</button>
       </nav>
+
+      <!-- Invite link (?invite=…): create a passkey on this device -->
+      <section id="panel-invite" class="card hidden">
+        <h1>Create your passkey</h1>
+        <p id="invite-intro" class="invite-intro">Checking your invite…</p>
+        <div id="invite-form-box" class="login hidden">
+          <label for="device-name">Name for this device</label>
+          <div class="login-row">
+            <input id="device-name" type="text" maxlength="40" autocomplete="off" />
+          </div>
+          <button id="btn-create-passkey" type="button" class="btn btn-wide">Create passkey</button>
+        </div>
+        <p id="invite-message" class="message" role="status" aria-live="polite"></p>
+      </section>
 
       <main id="panel-server" class="card">
         <h1>Palworld Server</h1>
@@ -33,17 +48,32 @@
         <div id="controls" class="controls hidden">
           <button id="btn-on" class="btn btn-on">Turn On</button>
           <button id="btn-off" class="btn btn-off">Turn Off</button>
-          <button id="btn-logout" class="btn btn-link">Log out</button>
+          <p id="signed-in-as" class="signed-in"></p>
+          <div class="account-row">
+            <button id="btn-add-device" class="btn btn-link hidden" type="button">Add another device</button>
+            <button id="btn-logout" class="btn btn-link">Log out</button>
+          </div>
+          <div id="device-link" class="link-box hidden">
+            <p>Open this link on your other device. It works once, for 7 days.</p>
+            <div class="link-row">
+              <input id="device-link-url" type="text" readonly aria-label="Link for your other device" />
+              <button id="btn-copy-device-link" class="btn btn-small" type="button">Copy</button>
+            </div>
+          </div>
         </div>
 
         <!-- Login (shown when logged out) -->
-        <form id="login" class="login hidden" autocomplete="off">
-          <label for="password">Enter password to control the server</label>
-          <div class="login-row">
-            <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
-            <button id="btn-login" type="submit" class="btn">Log in</button>
-          </div>
-        </form>
+        <div id="login" class="login hidden">
+          <button id="btn-passkey" type="button" class="btn btn-wide">Sign in with a passkey</button>
+          <p class="hint">No passkey yet? Ask the server admin for an invite link.</p>
+          <form id="password-form" class="password-form hidden" autocomplete="off">
+            <label for="password">Or sign in with the admin password</label>
+            <div class="login-row">
+              <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
+              <button id="btn-login" type="submit" class="btn">Log in</button>
+            </div>
+          </form>
+        </div>
 
         <p id="message" class="message" role="status" aria-live="polite"></p>
       </main>
@@ -115,9 +145,66 @@
           </details>
         </div>
       </section>
+
+      <!-- Friends: admins only -->
+      <section id="panel-friends" class="card wide hidden">
+        <h1>Friends</h1>
+
+        <div class="friends-block">
+          <h2>Invite someone</h2>
+          <form id="invite-form" class="invite-form" autocomplete="off">
+            <input id="invite-name" type="text" maxlength="40" placeholder="Name" aria-label="Name" required />
+            <label class="check"><input id="invite-admin" type="checkbox" /> Admin</label>
+            <button class="btn btn-small" type="submit">Make invite link</button>
+          </form>
+          <p class="hint">
+            A friend can turn the server on and off. An admin can also restart it, change settings and
+            manage friends.
+          </p>
+          <div id="invite-result" class="link-box hidden">
+            <p id="invite-result-text"></p>
+            <div class="link-row">
+              <input id="invite-result-url" type="text" readonly aria-label="Invite link" />
+              <button id="btn-copy-invite" class="btn btn-small" type="button">Copy</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="friends-block">
+          <h2>People</h2>
+          <ul id="friend-list" class="friend-list"></ul>
+          <p id="no-friends" class="hint hidden">Nobody has a passkey yet.</p>
+        </div>
+
+        <div class="friends-block">
+          <h2>Open invites</h2>
+          <ul id="invite-list" class="friend-list"></ul>
+          <p id="no-invites" class="hint hidden">None.</p>
+        </div>
+
+        <div class="friends-block">
+          <h2>Password sign-in</h2>
+          <div class="setting-row">
+            <div class="setting-info">
+              <label for="pw-switch">Allow the admin password</label>
+              <p id="pw-hint" class="setting-desc"></p>
+            </div>
+            <div class="setting-control">
+              <label class="switch">
+                <input id="pw-switch" type="checkbox" />
+                <span class="knob"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <p id="friends-message" class="message" role="status" aria-live="polite"></p>
+      </section>
     </div>
 
+    <script src="vendor/simplewebauthn-browser.js"></script>
     <script src="app.js"></script>
     <script src="settings.js"></script>
+    <script src="friends.js"></script>
   </body>
 </html>

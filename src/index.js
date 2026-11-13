@@ -1,4 +1,4 @@
-import { config, validateConfig } from './config.js';
+import { config, validateConfig, configWarnings } from './config.js';
 import { loadOverrides, applyOverrides } from './managerSettings.js';
 import { createPalApi } from './palApi.js';
 import { ServerManager } from './serverManager.js';
@@ -16,6 +16,8 @@ async function main() {
     console.error('\nCopy .env.example to .env and fill in the missing values.');
     process.exit(1);
   }
+
+  for (const w of configWarnings(config)) log(`Warning: ${w}`);
 
   // Persisted UI overrides (e.g. auto-shutdown settings) win over .env defaults.
   applyOverrides(config, loadOverrides());

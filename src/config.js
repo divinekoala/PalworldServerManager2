@@ -65,9 +65,15 @@ export const config = {
     shutdownGraceSeconds: num('SHUTDOWN_GRACE_SECONDS', 10),
   },
   auth: {
+    // Optional once an admin has a passkey: empty means no password sign-in at all.
     passwordHash: str('ADMIN_PASSWORD_HASH', ''),
     sessionSecret: str('SESSION_SECRET', ''),
     sessionTtlHours: num('SESSION_TTL_HOURS', 24),
+  },
+  passkeys: {
+    // The address people open, e.g. https://palworld.example.org. Passkeys are
+    // tied to its host name. Empty: use the address of each request.
+    origin: str('PASSKEY_ORIGIN', '').replace(/\/+$/, ''),
   },
   duckdns: {
     domain: str('DUCKDNS_DOMAIN', ''),
@@ -83,11 +89,23 @@ export function validateConfig(c = config) {
   const problems = [];
   if (!c.process.exe) problems.push('PAL_SERVER_EXE is not set (path to PalServer.exe).');
   if (!c.rest.password) problems.push('REST_API_PASSWORD is not set (your Palworld AdminPassword).');
-  if (!c.auth.passwordHash) {
-    problems.push('ADMIN_PASSWORD_HASH is not set. Generate one with: npm run hash-password');
-  }
   if (!c.auth.sessionSecret) {
     problems.push('SESSION_SECRET is not set. Generate one with: node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"');
   }
+  if (c.passkeys.origin && !/^https?:\/\/[^/]+$/.test(c.passkeys.origin)) {
+    problems.push('PASSKEY_ORIGIN must be a scheme and a host only, e.g. https://palworld.example.org');
+  }
   return problems;
+}
+
+/** Not fatal, but worth a line in the log at start-up. */
+export function configWarnings(c = config) {
+  const warnings = [];
+  if (!c.auth.passwordHash) {
+    warnings.push(
+      'ADMIN_PASSWORD_HASH is not set, so password sign-in is off. If no admin has a passkey yet, ' +
+        'make an admin invite: npm run passkey-invite -- --admin <name>'
+    );
+  }
+  return warnings;
 }

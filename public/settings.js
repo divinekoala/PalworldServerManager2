@@ -8,6 +8,7 @@
   const panels = {
     server: el('panel-server'),
     settings: el('panel-settings'),
+    friends: el('panel-friends'),
   };
   const tabButtons = Array.from(document.querySelectorAll('.tab'));
 
@@ -27,7 +28,7 @@
   const msSaveBtn = el('btn-save-manager');
   const managerMessage = el('manager-message');
 
-  let authed = null; // mirrors app.js via psm:auth events
+  let authed = null; // signed in as an admin; mirrors app.js via psm:auth events
   let serverState = null; // mirrors app.js via psm:state events
   let catalog = null; // loaded from GET /api/settings
   let savedValues = {}; // last values persisted on the server
@@ -42,15 +43,22 @@
       btn.classList.toggle('active', active);
       btn.setAttribute('aria-selected', String(active));
     }
-    panels.server.classList.toggle('hidden', name !== 'server');
-    panels.settings.classList.toggle('hidden', name !== 'settings');
+    for (const [panelName, panel] of Object.entries(panels)) {
+      panel.classList.toggle('hidden', name !== panelName);
+    }
     if (name === 'settings') maybeLoad();
+    window.dispatchEvent(new CustomEvent('psm:tab', { detail: { name } }));
   }
   tabButtons.forEach((btn) => btn.addEventListener('click', () => selectTab(btn.dataset.tab)));
+  window.psmSelectTab = selectTab;
 
   // ── Auth / state wiring from app.js ────────────────────────────────────────
+  // Settings are for admins. A friend sees why the form is not there.
   window.addEventListener('psm:auth', (e) => {
-    authed = e.detail.authed;
+    authed = e.detail.authed && e.detail.role === 'admin';
+    loginNote.textContent = e.detail.authed
+      ? 'Only an admin can change settings.'
+      : 'Log in on the Server tab to view and edit settings.';
     loginNote.classList.toggle('hidden', authed);
     body.classList.toggle('hidden', !authed);
     if (!authed) {

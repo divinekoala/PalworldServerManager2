@@ -38,34 +38,41 @@ function b64url(buf) {
 
 /**
  * Create a stateless signed session token: "<payloadB64>.<hmacB64>".
- * The payload carries an expiry timestamp, so no server-side store is needed.
+ * The payload carries an expiry timestamp, so no server-side store is needed,
+ * and who signed in: `uid` is a passkey friend's id, or "password". A token
+ * from before passkeys has no `uid` and counts as a password session.
  */
-export function createSession(secret, ttlHours) {
-  const payload = { exp: Date.now() + ttlHours * 3600 * 1000 };
+export function createSession(secret, ttlHours, claims = {}) {
+  const payload = { ...claims, exp: Date.now() + ttlHours * 3600 * 1000 };
   const payloadB64 = b64url(JSON.stringify(payload));
   const sig = crypto.createHmac('sha256', secret).update(payloadB64).digest();
   return `${payloadB64}.${b64url(sig)}`;
 }
 
 /**
- * Verify a session token. Returns true only if the signature is valid and the
- * token has not expired.
+ * Read a session token. Returns its payload only if the signature is valid and
+ * the token has not expired; otherwise null.
  */
-export function verifySession(token, secret) {
+export function readSession(token, secret) {
   try {
-    if (!token || typeof token !== 'string') return false;
+    if (!token || typeof token !== 'string') return null;
     const dot = token.indexOf('.');
-    if (dot < 0) return false;
+    if (dot < 0) return null;
     const payloadB64 = token.slice(0, dot);
     const sigB64 = token.slice(dot + 1);
     const expected = crypto.createHmac('sha256', secret).update(payloadB64).digest();
     const actual = Buffer.from(sigB64, 'base64url');
     if (actual.length !== expected.length || !crypto.timingSafeEqual(expected, actual)) {
-      return false;
+      return null;
     }
     const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-    return typeof payload.exp === 'number' && payload.exp > Date.now();
+    return typeof payload.exp === 'number' && payload.exp > Date.now() ? payload : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+/** True only if the signature is valid and the token has not expired. */
+export function verifySession(token, secret) {
+  return readSession(token, secret) !== null;
 }

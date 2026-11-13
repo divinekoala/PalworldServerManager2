@@ -3,11 +3,11 @@
 # server process inside this same container (no Docker socket required).
 FROM cm2network/steamcmd:root
 
-# Runtime deps: Node 20, procps (pkill for force-kill fallback), and the bits the
+# Runtime deps: Node 24 (passkeys need 22 or newer), procps (pkill for force-kill fallback), and the bits the
 # Palworld server expects.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates procps xdg-user-dirs \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 

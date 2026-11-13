@@ -97,7 +97,11 @@ Set your subdomain via `DUCKDNS_DOMAIN` in `.env`; the bundled Caddy publishes
 Reach the UI at `https://<your-subdomain>.duckdns.org` once DNS + the cert are
 ready. Log in with your web UI password and use Turn On / Turn Off — the server
 only launches when you turn it on, and auto-saves + shuts down after the idle
-period.
+period. Then give yourself and your friends passkeys (README, "Passkeys"), and
+switch the password off.
+
+To make an admin passkey link from the host (for example when locked out):
+`docker compose exec palworld-manager node scripts/passkey-invite.js --admin <name>`.
 
 ## Ports
 

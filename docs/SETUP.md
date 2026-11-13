@@ -9,7 +9,7 @@ There are two distinct passwords in this setup — keep them clear in your head:
 | Password | Where it lives | What it's for |
 | --- | --- | --- |
 | **Palworld AdminPassword** | `PalWorldSettings.ini` → `.env` `REST_API_PASSWORD` | The manager authenticating to the game server's REST API |
-| **Web UI password** | hashed into `.env` `ADMIN_PASSWORD_HASH` | Logging into the web UI to press On/Off |
+| **Web UI password** | hashed into `.env` `ADMIN_PASSWORD_HASH` | Signing in to the web UI as admin, until everybody has a passkey (README, "Passkeys") |
 
 ---
 
@@ -42,7 +42,7 @@ You should get a JSON response with the server name and version.
 
 ## 2. Install and configure the manager
 
-1. Install [Node.js 18+](https://nodejs.org/).
+1. Install [Node.js 22 or newer](https://nodejs.org/) (24 LTS is a good choice).
 2. From the project folder:
 
    ```powershell
