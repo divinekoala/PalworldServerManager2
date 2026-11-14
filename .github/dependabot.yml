@@ -1,0 +1,26 @@
+# Dependabot: one grouped pull request per ecosystem each month, so pinned
+# versions do not go stale. Security fixes come sooner, in their own pull
+# requests, when "Dependabot security updates" is on in the repo's settings.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      # Minor and patch updates together. A major update gets its own pull
+      # request, because it can need code changes.
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directories: ["/docker", "/docker/caddy"]
+    schedule:
+      interval: monthly
+    groups:
+      docker-images:
+        patterns: ["*"]
+    ignore:
+      # A new Node major is a decision for its own change, not a monthly update.
+      - dependency-name: node
+        update-types: [version-update:semver-major]
